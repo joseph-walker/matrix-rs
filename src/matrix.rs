@@ -80,10 +80,9 @@ impl Matrix {
 
     pub fn swap_rows(&mut self, row_a: usize, row_b: usize) -> () {
         let old_a = self.rows[row_a - 1];
-        let old_b = self.rows[row_b - 1];
 
-        *(&mut self.rows[row_b - 1]) = old_a;
-        *(&mut self.rows[row_a - 1]) = old_b;
+        self.rows[row_a - 1] = self.rows[row_b - 1];
+        self.rows[row_b - 1] = old_a;
     }
 
     pub fn add_row_vector(&mut self, row: usize, vector: Vector) -> () {
@@ -91,7 +90,7 @@ impl Matrix {
 
         for i in 0..self.num_cols {
             let idx = offset + i;
-            *(&mut self.values[idx]) += vector.values[i];
+            self.values[idx] += vector.values[i];
         }
     }
 }

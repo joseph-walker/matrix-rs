@@ -10,11 +10,15 @@ use matrix::*;
 enum Action {
     Quit,
     Print,
+    NoOp,
     NewMatrix(usize, usize, Vec<f64>),
     Scale(usize, f64),
     Add(usize, usize, f64),
+    Swap(usize, usize),
 }
 
+// TODO Parsing needs a serious error handling pass
+// Even a light breeze will cause a panic
 fn read_next_action() -> Action {
     print!("> ");
 
@@ -25,6 +29,10 @@ fn read_next_action() -> Action {
     let _bytes_read = stdin().read_line(&mut line).unwrap();
 
     let chunks: Vec<&str> = line.trim().split_whitespace().collect();
+
+    if chunks.len() == 0 {
+        return Action::NoOp;
+    }
 
     match chunks[0] {
         "quit" => Action::Quit,
@@ -38,6 +46,7 @@ fn read_next_action() -> Action {
                 .collect(),
         ),
         "scale" => Action::Scale(chunks[1].parse().unwrap(), chunks[2].parse().unwrap()),
+        "swap" => Action::Swap(chunks[1].parse().unwrap(), chunks[2].parse().unwrap()),
         "add" => Action::Add(
             chunks[1].parse().unwrap(),
             chunks[2].parse().unwrap(),
@@ -55,29 +64,36 @@ fn repl() {
 
         match action {
             Action::Quit => break,
+            Action::NoOp => continue,
             Action::NewMatrix(rows, cols, values) => {
                 matrix = Some(Matrix::new(rows, cols, values));
+                println!("Ok");
             }
             _ => {
                 match matrix {
-                    Some(ref mut matrix) => match action {
-                        Action::Print => print!("{}", matrix),
-                        Action::Scale(row, scale) => {
-                            matrix.scale_row(row, scale);
+                    Some(ref mut matrix) => {
+                        match action {
+                            Action::Print => print!("{}", matrix),
+                            Action::Scale(row, scale) => {
+                                matrix.scale_row(row, scale);
+                            }
+                            Action::Add(src, target, scale) => {
+                                let mut r = matrix.row_at(src);
+                                r.scale(scale);
+                                matrix.add_row_vector(target, r);
+                            }
+                            Action::Swap(a, b) => {
+                                matrix.swap_rows(a, b);
+                            }
+                            _ => unreachable!(),
                         }
-                        Action::Add(src, target, scale) => {
-                            let mut r = matrix.row_at(src);
-                            r.scale(scale);
-                            matrix.add_row_vector(target, r);
-                        }
-                        _ => unreachable!(),
-                    },
+
+                        println!("Ok");
+                    }
                     None => println!("No matrix in memory!"),
                 };
             }
         }
-
-        println!("Ok");
     }
 }
 
