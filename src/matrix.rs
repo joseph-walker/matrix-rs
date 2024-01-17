@@ -64,6 +64,16 @@ impl Matrix {
         Vector::new_from_slice(row)
     }
 
+    pub fn col_at(&self, col: usize) -> Vector {
+        let mut col_vals = vec![];
+        
+        for row in 1..=self.num_rows {
+            col_vals.push(*self.at(row, col));
+        }
+
+        Vector::new_from_slice(col_vals.into_boxed_slice())
+    }
+
     pub fn at_mut(&mut self, row: usize, col: usize) -> &mut f64 {
         let idx = self.rows[row - 1] + col - 1;
 
@@ -90,7 +100,7 @@ impl Matrix {
 
         for i in 0..self.num_cols {
             let idx = offset + i;
-            self.values[idx] += vector.values[i];
+            self.values[idx] += vector.0[i];
         }
     }
 }

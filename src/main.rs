@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use std::io::{stdin, stdout, Write};
+use std::{
+    io::{stdin, stdout, Write},
+    ops::Index,
+};
 
 mod matrix;
 mod vector;
@@ -97,48 +100,91 @@ fn repl() {
     }
 }
 
+/// Take a matrix and turn it into echelon form
+fn gauss(matrix: &mut Matrix) -> () {
+    // Begin with the leftmost nonzero column
+    // Find the first non-zero column
+    let mut row = 0;
+
+    for cdx in 1..=matrix.num_cols {
+        println!("Matrix value at loop start:");
+        println!("{}", matrix);
+
+        // If all rows are eliminated, we're in echelon form
+        if row >= matrix.num_rows {
+            println!("No more rows");
+            break;
+        }
+
+        // Get the nth column
+        let mut col = matrix.col_at(cdx);
+
+        // Ignore the completed rows
+        println!("Dropping {} rows", row);
+        col.0.drain(0..row);
+
+        // If this column contains all zeroes, it is not a pivot candidate
+        if col
+            .0
+            .iter()
+            .filter(|&v| *v != 0.0)
+            .collect::<Vec<&f64>>()
+            .len()
+            == 0
+        {
+            println!("Column is all zeroes. Continue");
+            continue;
+        }
+
+        // If the first value is a zero, swap it with the first non-zero row
+        if col.0[0] == 0.0 {
+            println!("First value in column is zero. Perform row swap.");
+            let first_nonzero = col.0.iter().position(|&v| v != 0.0).unwrap();
+            matrix.swap_rows(row + 1, first_nonzero + 1);
+            col = matrix.col_at(cdx);
+            println!("Matrix after swap:");
+            println!("{}", matrix);
+        }
+
+        let pivot_value = col.0[0];
+        println!("Pivot value: {}", pivot_value);
+
+        // For all the rows under this one, perform row operations to create all zeroes
+        println!("Matrix value at reduction process start:");
+        println!("{}", matrix);
+
+        for rdx in row + 2..=matrix.num_rows {
+            println!("Reduction step:");
+            let scale_factor = -matrix.at(rdx, cdx) / pivot_value;
+
+            println!("Scale factor: {}", scale_factor);
+            let mut v = matrix.row_at(row + 1);
+            v.scale(scale_factor);
+            println!("Resulting vector: {}", v);
+            matrix.add_row_vector(rdx, v);
+            println!("New matrix value:");
+            println!("{}", matrix);
+        }
+
+        // Eliminate this row and continue
+        row += 1;
+    }
+}
+
 fn main() {
-    repl();
+    example();
+    // repl();
 }
 
 fn example() {
     let mut m = Matrix::new(
         3,
         4,
-        vec![1, -2, 1, 0, 0, 2, -8, 8, -4, 5, 9, -9]
+        vec![2, 0, 0, 1, 0, 2, 0, 2, 0, 3, 2, 3]
             .into_iter()
             .map(|i| i as f64)
             .collect(),
     );
 
-    // The following matrix operations solve this system of linear equations:
-    //   x - 2y +  z = 0
-    //       2y - 8z = 8
-    // -4x + 5y + 9z = -9
-
-    println!("{}", m);
-
-    let mut r = m.row_at(1);
-    r.scale(4.0);
-    m.add_row_vector(3, r);
-
-    m.scale_row(2, 0.5);
-
-    let mut r = m.row_at(2);
-    r.scale(3.0);
-    m.add_row_vector(3, r);
-
-    let mut r = m.row_at(3);
-    r.scale(4.0);
-    m.add_row_vector(2, r);
-
-    let mut r = m.row_at(2);
-    r.scale(2.0);
-    m.add_row_vector(1, r);
-
-    let mut r = m.row_at(3);
-    r.scale(-1.0);
-    m.add_row_vector(1, r);
-
-    println!("{}", m);
+    gauss(&mut m);
 }
