@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 
-use std::{
-    io::{stdin, stdout, Write},
-    ops::Index,
-};
+use std::io::{stdin, stdout, Write};
 
 mod matrix;
 mod vector;
@@ -18,6 +15,7 @@ enum Action {
     Scale(usize, f64),
     Add(usize, usize, f64),
     Swap(usize, usize),
+    Echelon,
 }
 
 // TODO Parsing needs a serious error handling pass
@@ -55,6 +53,7 @@ fn read_next_action() -> Action {
             chunks[2].parse().unwrap(),
             chunks[3].parse().unwrap(),
         ),
+        "echelon" => Action::Echelon,
         _ => panic!("Got unknown action!"),
     }
 }
@@ -88,6 +87,9 @@ fn repl() {
                             Action::Swap(a, b) => {
                                 matrix.swap_rows(a, b);
                             }
+                            Action::Echelon => {
+                                gauss(matrix);
+                            }
                             _ => unreachable!(),
                         }
 
@@ -107,12 +109,8 @@ fn gauss(matrix: &mut Matrix) -> () {
     let mut row = 0;
 
     for cdx in 1..=matrix.num_cols {
-        println!("Matrix value at loop start:");
-        println!("{}", matrix);
-
         // If all rows are eliminated, we're in echelon form
         if row >= matrix.num_rows {
-            println!("No more rows");
             break;
         }
 
@@ -120,7 +118,6 @@ fn gauss(matrix: &mut Matrix) -> () {
         let mut col = matrix.col_at(cdx);
 
         // Ignore the completed rows
-        println!("Dropping {} rows", row);
         col.0.drain(0..row);
 
         // If this column contains all zeroes, it is not a pivot candidate
@@ -132,38 +129,26 @@ fn gauss(matrix: &mut Matrix) -> () {
             .len()
             == 0
         {
-            println!("Column is all zeroes. Continue");
             continue;
         }
 
         // If the first value is a zero, swap it with the first non-zero row
         if col.0[0] == 0.0 {
-            println!("First value in column is zero. Perform row swap.");
             let first_nonzero = col.0.iter().position(|&v| v != 0.0).unwrap();
+
             matrix.swap_rows(row + 1, first_nonzero + 1);
             col = matrix.col_at(cdx);
-            println!("Matrix after swap:");
-            println!("{}", matrix);
         }
 
         let pivot_value = col.0[0];
-        println!("Pivot value: {}", pivot_value);
 
         // For all the rows under this one, perform row operations to create all zeroes
-        println!("Matrix value at reduction process start:");
-        println!("{}", matrix);
-
         for rdx in row + 2..=matrix.num_rows {
-            println!("Reduction step:");
             let scale_factor = -matrix.at(rdx, cdx) / pivot_value;
 
-            println!("Scale factor: {}", scale_factor);
             let mut v = matrix.row_at(row + 1);
             v.scale(scale_factor);
-            println!("Resulting vector: {}", v);
             matrix.add_row_vector(rdx, v);
-            println!("New matrix value:");
-            println!("{}", matrix);
         }
 
         // Eliminate this row and continue
@@ -172,15 +157,15 @@ fn gauss(matrix: &mut Matrix) -> () {
 }
 
 fn main() {
-    example();
-    // repl();
+    // example();
+    repl();
 }
 
 fn example() {
     let mut m = Matrix::new(
         3,
         4,
-        vec![2, 0, 0, 1, 0, 2, 0, 2, 0, 3, 2, 3]
+        vec![1, -2, 1, 0, 0, 2, -8, 8, -4, 5, 9, -9]
             .into_iter()
             .map(|i| i as f64)
             .collect(),
